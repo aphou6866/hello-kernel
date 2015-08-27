@@ -1,0 +1,220 @@
+Part One. Autotools example ( http://www.aireadfun.com/blog/2012/12/03/study-automake/ )
+
+1.	airead@airead:/tmp/summary-1.0.0$ ls
+	doc man script src
+	airead@airead:/tmp/summary-1.0.0$ autoscan
+	airead@airead:/tmp/summary-1.0.0$ ls
+	autoscan.log configure.scan doc man script src
+	airead@airead:/tmp/summary-1.0.0$ mv configure.scan configure.ac
+	airead@airead:/tmp/summary-1.0.0$ ls
+	autoscan.log configure.ac doc man script src
+
+2.	Edit configure.ac by
+	Replace 
+	AC_INIT([FULL-PACKAGE-NAME], [VERSION], [BUG-REPORT-ADDRESS])
+	with
+	AC_INIT([autotool.example], [1.0.0], [tony@gmail.com])
+
+3.	airead@airead:/tmp/summary-1.0.0$ ls
+	autoscan.log configure.ac doc man script src
+	airead@airead:/tmp/summary-1.0.0$ autoconf
+	airead@airead:/tmp/summary-1.0.0$ ls
+	autom4te.cache configure doc script
+	autoscan.log configure.ac man src
+
+4.	Create Makefile.am by
+cat  << EOF > Makefile.am
+AUTOMAKE_OPTIONS = foreign
+SUBDIRS = doc man script src
+EOF
+
+5.	Create man/Makefile.am by
+cat  << EOF > man/Makefile.am
+man_MANS = summary.8
+EOF
+
+6.	Create script/Makefile.am by 
+cat  << EOF > script/Makefile.am
+bin_SCRIPTS = summary.sh
+EOF
+
+7.	Create doc/Makefile.am by
+cat  << EOF > doc/Makefile.am
+docdir = \$(datadir)/doc/@PACKAGE@
+doc_DATA = OVERVIEW README
+EOF
+
+8.	Create src/Makefile.am by
+cat  << EOF > src/Makefile.am
+SUBDIRS=lib person
+EOF
+
+9.1	Create src/lib/Makefile.am by
+cat  << EOF > src/lib/Makefile.am
+noinst_LIBRARIES=libutils.a 
+libutils_a_SOURCES=lib.c lib.h
+EOF
+
+9.2	Or if you want to instal to lib, create src/lib/Makefile.am by
+cat  << EOF > src/lib/Makefile.am
+lib_LIBRARIES=libutils.a
+libutils_a_SOURCES=lib.c lib.h
+EOF
+10.	Create src/person/Makefile.am by
+cat  << EOF > src/person/Makefile.am
+AM_CFLAGS = -I../lib
+
+bin_PROGRAMS = summary
+summary_SOURCES = main.c main.h do.c do.h
+summary_LDADD = ../lib/libutils.a
+EOF
+
+11.	Run automake by
+	airead@airead:/tmp/summary-1.0.0$ automake
+	configure.ac: no proper invocation of AM_INIT_AUTOMAKE was found.
+	configure.ac: You should verify that configure.ac invokes AM_INIT_AUTOMAKE,
+	configure.ac: that aclocal.m4 is present in the top-level directory,
+	configure.ac: and that aclocal.m4 was recently regenerated (using aclocal).
+	automake: no `Makefile.am' found for any configure output
+	automake: Did you forget AC_CONFIG_FILES([Makefile]) in configure.ac?
+	
+12.	Edit cofigure.ac by adding
+	AM_INIT_AUTOMAKE(autotool.example, 1.0.0)
+	After
+	AC_INIT([autotool.example], [1.0.0], [tony@gmail.com])
+	
+
+13.	Integrating The Checking (Autoconf) Part And The Building (Automake) Part
+	airead@airead:/tmp/summary-1.0.0$ autoscan 
+	airead@airead:/tmp/summary-1.0.0$ diff configure.ac configure.scan
+	
+14.	Copy configure.scan to configure.ac  and edit by
+	cp configure.scan  configure.ac
+
+15.	Edit cofigure.ac by adding
+	AM_INIT_AUTOMAKE(autotool.example, 1.0.0)
+	After
+	AC_INIT([autotool.example], [1.0.0], [tony@gmail.com])
+
+16.	again
+	
+	airead@airead:/tmp/summary-1.0.0$ aclocal
+	airead@airead:/tmp/summary-1.0.0$ autoheader
+	airead@airead:/tmp/summary-1.0.0$ autoconf
+	airead@airead:/tmp/summary-1.0.0$  automake --add-missing
+	configure.ac:9: installing `./install-sh'
+	configure.ac:9: installing `./missing'
+	src/lib/Makefile.am:1: library used but `RANLIB' is undefined
+	src/lib/Makefile.am:1: The usual way to define `RANLIB' is to add `AC_PROG_RANLIB'
+	src/lib/Makefile.am:1: to `configure.ac' and run `autoconf' again.
+	src/lib/Makefile.am: installing `./depcomp'
+
+17.	Read the error information and fix it by puting AC_PROG_RANLIB after AC_INIT_AUTOMAKE() in configure.ac.
+	airead@airead:/tmp/summary-1.0.0$ automake
+	
+	
+	
+	
+	
+Part Two. Autotools example ( 
+	http://stackoverflow.com/questions/18974858/how-to-write-own-package-for-recipe-in-arago-project-build 
+	http://www.yoctoproject.org/docs/current/mega-manual/mega-manual.html
+	http://www.yoctoproject.org/docs/1.8/ref-manual/ref-manual.html
+	http://www.yoctoproject.org/docs/1.6.1/kernel-dev/kernel-dev.html
+)
+
+
+1.	Copy GPL3+ licence to autotool.example by
+	cp COPYING autotool.example
+2.	Move autotool.example to summary-1.0 by 
+	mv autotool.example summary-1.0
+	tar Yocto_recipe_example.tar summary-1.0 && gzip Yocto_recipe_example
+
+3.	Construct directories in poky by the following commands
+	mkdir -p meta-pega/recipes-pega
+	mkdir -p meta-pega/conf
+	mkdir -p meta-pega/recipes-pega/summary
+	mkdir -p meta-pega/recipes-pega/summary/files
+	mkdir -p meta-pega/recipes-pega/hello-user
+	mkdir -p meta-pega/recipes-pega/hello-kenel
+	
+4.	Copy Yocto_recipe_example.tar.gz to meta-pega/recipes-pega/summary/files by
+	cp Yocto_recipe_example.tar.gz  meta-pega/recipes-pega/summary/files/summary-1.0.tar.gz
+	
+5-1.	Create summary.bb by the following commands
+	cd meta-pega/recipes-pega/summary
+cat << EOF >  summary.bb
+DESCRIPTION = "GNU Helloworld application"
+SECTION = "examples"
+LICENSE = "GPLv3+"
+LIC_FILES_CHKSUM = "file://COPYING;md5=d32239bcb673463ab874e80d47fae504"
+PR = "r0"
+PV = "1.0"
+SRC_URI = "file://summary-\${PV}.tar.gz"
+inherit autotools gettext
+
+EXTRA_AUTORECONF += "--include=\${WORKDIR}/summary-\${PV}/src/"
+CFLAGS += "-I\${WORKDIR}/summary-\${PV}/src/lib/"
+EOF
+
+5-2.	Create hello-user.bb by the following commands
+	cd ../hello-user
+cat << EOF >  helloWorld.bb
+DESCRIPTION = "GNU Helloworld application"
+SECTION = "base"
+LICENSE = "GPLv3+"
+LIC_FILES_CHKSUM = "file://COPYING;md5=d32239bcb673463ab874e80d47fae504"
+SRCREV = "\${AUTOREV}"
+SRC_URI[md5sum] = "59a1f0a890ee9fe1bd059bfbc68e0bfa"
+SRC_URI = "git://github.com/aphou6866/hello-user.git"
+PR = "r0"
+Pv = "1.0"
+S = "\${WORKDIR}/git/"
+EXTRA_OEMAKE = "'CC=\${CC}'"
+
+do_install () {
+	oe_runmake user DESTDIR=\${D} BINDIR=\${bindir} MANDIR=\${mandir} INCLUDEDIR=\${includedir}
+}
+
+
+PARALLEL_MAKE = ""
+BBCLASSEXTEND = "native"
+EOF
+
+5-3.	Create hello-kernel.bb by the following commands
+	cd ../hello-kernel
+cat << EOF >  helloWorld.bb
+DESCRIPTION = "GNU Helloworld application"
+SECTION = "base"
+LICENSE = "GPLv3+"
+LIC_FILES_CHKSUM = "file://COPYING;md5=d32239bcb673463ab874e80d47fae504"
+SRCREV = "\${AUTOREV}"
+SRC_URI[md5sum] = "59a1f0a890ee9fe1bd059bfbc68e0bfa"
+SRC_URI = "git://github.com/aphou6866/hello-kernel.git"
+PR = "r0"
+Pv = "1.0"
+S = "\${WORKDIR}/git/"
+inherit module
+
+	
+6.	Create layer.conf by the following commands
+	cd ../../conf
+cat << EOF > layer.conf
+# We have a conf directory, append to BBPATH
+BBPATH .= ":\${LAYERDIR}"
+
+# We have a recipes directory, add to BBFILES
+BBFILES += "\${LAYERDIR}/recipes-*/*/*.bb \${LAYERDIR}/recipes-*/*/*.bbappend"
+
+BBFILE_COLLECTIONS += "meta-pega"
+BBFILE_PATTERN_meta-pega := "^\${LAYERDIR}/"
+BBFILE_PRIORITY_meta-pega = "7"
+EOF
+
+7.	Add the following line to poky/conf/bblayers.conf
+	/home/sun/elliot/BU6_Project/switch/Marlaki/poky/meta-pega \
+	
+8.	Add the following line to meta/recipes-core/images/core-image-base.bb
+	IMAGE_INSTALL_append = " summary helloWorld"
+
+9.	bitbake core-image-base
